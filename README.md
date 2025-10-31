@@ -24,6 +24,9 @@ Proyek ini menggunakan dataset dengan 6 kelas:
 
 ```powershell
 git clone https://github.com/andinoferdi/VGG19-Image-Classification.git
+```
+
+```powershell
 cd VGG19-Image-Classification
 ```
 
