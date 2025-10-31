@@ -23,7 +23,7 @@ Proyek ini menggunakan dataset dengan 6 kelas:
 ### 1. Clone Repository
 
 ```powershell
-git clone [<repository-url>](https://github.com/andinoferdi/VGG19-Image-Classification.git)
+git clone https://github.com/andinoferdi/VGG19-Image-Classification.git
 cd VGG19-Image-Classification
 ```
 
