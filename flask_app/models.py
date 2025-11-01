@@ -19,7 +19,12 @@ def initialize_vgg19(num_classes: int = NUM_CLASSES, feature_extract: bool = Tru
     if checkpoint_path and os.path.exists(checkpoint_path):
         try:
             checkpoint = torch.load(checkpoint_path, map_location=DEVICE)
-            model.load_state_dict(checkpoint)
+            # Handle both old format (state_dict only) and new format (dict with model_state_dict)
+            if isinstance(checkpoint, dict) and 'model_state_dict' in checkpoint:
+                model.load_state_dict(checkpoint['model_state_dict'])
+            else:
+                # Old format - direct state_dict
+                model.load_state_dict(checkpoint)
             print(f"Successfully loaded checkpoint from {checkpoint_path}")
             print(f"Checkpoint file size: {os.path.getsize(checkpoint_path) / 1024 / 1024:.2f} MB")
         except Exception as e:
@@ -38,7 +43,13 @@ def initialize_vgg19(num_classes: int = NUM_CLASSES, feature_extract: bool = Tru
 
 def load_model(model_path: str, num_classes: int = NUM_CLASSES) -> nn.Module:
     model, _ = initialize_vgg19(num_classes=num_classes, feature_extract=True)
-    model.load_state_dict(torch.load(model_path, map_location=DEVICE))
+    checkpoint = torch.load(model_path, map_location=DEVICE)
+    # Handle both old format (state_dict only) and new format (dict with model_state_dict)
+    if isinstance(checkpoint, dict) and 'model_state_dict' in checkpoint:
+        model.load_state_dict(checkpoint['model_state_dict'])
+    else:
+        # Old format - direct state_dict
+        model.load_state_dict(checkpoint)
     model.eval()
     return model
 

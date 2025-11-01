@@ -1,0 +1,35 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Current File",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "python": "C:\\Users\\andin\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+            "justMyCode": true
+        },
+        {
+            "name": "Python: Flask App",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/flask_app/app.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}/flask_app",
+            "python": "C:\\Users\\andin\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+            "justMyCode": true
+        },
+        {
+            "name": "Python: Test GPU",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/test gpu.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "python": "C:\\Users\\andin\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+            "justMyCode": true
+        }
+    ]
+}
+

@@ -1,0 +1,10 @@
+{
+    "python.defaultInterpreterPath": "C:\\Users\\andin\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+    "python.terminal.activateEnvironment": false,
+    "python.terminal.activateEnvInCurrentTerminal": false,
+    "python.venvPath": "",
+    "python.venvFolders": [],
+    "python.autoComplete.extraPaths": [],
+    "python.analysis.extraPaths": []
+}
+

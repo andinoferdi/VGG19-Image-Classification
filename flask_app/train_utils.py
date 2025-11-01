@@ -19,18 +19,34 @@ from config import *
 
 def train_model(model: nn.Module, dataloaders: Dict, dataset_sizes: Dict, 
                 criterion: nn.Module, optimizer: optim.Optimizer, 
-                scheduler: optim.lr_scheduler._LRScheduler, num_epochs: int = EPOCHS) -> Tuple:
+                scheduler: optim.lr_scheduler._LRScheduler, num_epochs: int = EPOCHS,
+                start_epoch: int = 0, train_loss_history: List = None, 
+                train_acc_history: List = None, val_loss_history: List = None, 
+                val_acc_history: List = None, best_acc: float = 0.0) -> Tuple:
     since = time.time()
     
     best_model_wts = copy.deepcopy(model.state_dict())
-    best_acc = 0.0
+    current_best_acc = best_acc  # Keep track of best accuracy
     
-    train_loss_history = []
-    train_acc_history = []
-    val_loss_history = []
-    val_acc_history = []
+    # Initialize history lists if None
+    if train_loss_history is None:
+        train_loss_history = []
+    if train_acc_history is None:
+        train_acc_history = []
+    if val_loss_history is None:
+        val_loss_history = []
+    if val_acc_history is None:
+        val_acc_history = []
     
-    for epoch in range(num_epochs):
+    # Print resume information
+    print(f"Starting training from epoch {start_epoch}/{num_epochs - 1}")
+    if start_epoch > 0:
+        print(f"Resuming training - previous best accuracy: {best_acc:.4f}")
+        print(f"Previous history: {len(train_loss_history)} train epochs, {len(val_loss_history)} val epochs")
+    else:
+        print("Starting fresh training (no previous history)")
+    
+    for epoch in range(start_epoch, num_epochs):
         print(f'Epoch {epoch}/{num_epochs - 1}')
         print('-' * 40)
         
@@ -76,15 +92,15 @@ def train_model(model: nn.Module, dataloaders: Dict, dataset_sizes: Dict,
                 val_loss_history.append(epoch_loss)
                 val_acc_history.append(epoch_acc.item())
                 
-                if epoch_acc > best_acc:
-                    best_acc = epoch_acc
+                if epoch_acc > current_best_acc:
+                    current_best_acc = epoch_acc
                     best_model_wts = copy.deepcopy(model.state_dict())
         
         print()
     
     time_elapsed = time.time() - since
     print(f'Training complete in {time_elapsed // 60:.0f}m {time_elapsed % 60:.0f}s')
-    print(f'Best val Acc: {best_acc:.4f}')
+    print(f'Best val Acc: {current_best_acc:.4f}')
     
     model.load_state_dict(best_model_wts)
     

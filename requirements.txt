@@ -1,3 +1,7 @@
+# Python Dependencies for VGG19 Image Classification
+# Install globally to system Python (no virtual environment needed)
+# GPU support requires CUDA-enabled PyTorch installation
+
 Flask==3.0.0
 torch==2.6.0+cu124
 torchvision==0.21.0+cu124

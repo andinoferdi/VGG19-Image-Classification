@@ -2,6 +2,8 @@
 
 Aplikasi web berbasis Flask untuk training dan prediksi klasifikasi gambar menggunakan model VGG19 dengan transfer learning. Proyek ini menggunakan PyTorch dengan GPU acceleration dan mendukung 6 kelas klasifikasi.
 
+**Setup Langsung Tanpa Virtual Environment** - Install PyTorch dan dependencies secara global ke system Python. GPU support akan otomatis aktif jika CUDA terinstall dengan benar.
+
 ## Dataset
 
 Proyek ini menggunakan dataset dengan 6 kelas:
@@ -30,30 +32,13 @@ git clone https://github.com/andinoferdi/VGG19-Image-Classification.git
 cd VGG19-Image-Classification
 ```
 
-### 2. Buat Virtual Environment
+### 2. Install PyTorch dengan CUDA
+
+**PENTING:** Jika PyTorch CPU version sudah terinstall, uninstall dulu sebelum install CUDA version:
 
 ```powershell
-python -m venv .venv312
+pip uninstall torch torchvision torchaudio -y
 ```
-
-### 3. Aktifkan Virtual Environment
-
-**Windows PowerShell:**
-```powershell
-.\.venv312\Scripts\Activate.ps1
-```
-
-**Windows CMD:**
-```cmd
-.venv312\Scripts\activate.bat
-```
-
-**Linux/Mac:**
-```bash
-source .venv312/bin/activate
-```
-
-### 4. Install PyTorch dengan CUDA
 
 **Untuk CUDA 12.1/12.4:**
 ```powershell
@@ -70,14 +55,21 @@ pip install torch torchvision torchaudio --index-url https://download.pytorch.or
 python -c "import torch; print(torch.__version__, torch.cuda.is_available())"
 ```
 
-### 5. Install Dependencies
+Output harus menunjukkan versi PyTorch dengan `+cu124` atau `+cu121` (bukan `+cpu`) dan `True` untuk CUDA availability.
+
+**Contoh output yang benar:**
+- `2.9.0+cu124 True` ✓
+- `2.9.0+cpu False` ✗ (masih CPU version, perlu uninstall dan reinstall)
+
+### 3. Install Dependencies
+
+Install semua dependencies ke system Python secara global:
 
 ```powershell
 pip install -r requirements.txt
 ```
 
-
-### 6. Test GPU (Opsional)
+### 4. Test GPU (Opsional)
 
 ```powershell
 python "test gpu.py"
@@ -90,25 +82,19 @@ Pastikan output menunjukkan:
 
 ## Menjalankan Aplikasi
 
-### 1. Aktifkan Virtual Environment
-
-```powershell
-.\.venv312\Scripts\Activate.ps1
-```
-
-### 2. Masuk ke Folder Flask App
+### 1. Masuk ke Folder Flask App
 
 ```powershell
 cd flask_app
 ```
 
-### 3. Jalankan Flask Server
+### 2. Jalankan Flask Server
 
 ```powershell
 python app.py
 ```
 
-### 4. Buka Browser
+### 3. Buka Browser
 
 Buka: http://localhost:5000
 
@@ -230,35 +216,87 @@ Aplikasi menghitung:
 
 ## Troubleshooting
 
-### GPU Not Detected
+### GPU Not Detected / gpu_in_use=False
 
-1. Verifikasi GPU terdeteksi:
+1. **Cek versi PyTorch yang terinstall:**
+   ```powershell
+   python -c "import torch; print(torch.__version__, torch.cuda.is_available())"
+   ```
+   
+   Jika output menunjukkan `+cpu` dan `False`, berarti PyTorch CPU version masih terinstall.
+
+2. **Solusi: Uninstall PyTorch CPU dan install CUDA version:**
+   ```powershell
+   pip uninstall torch torchvision torchaudio -y
+   pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
+   ```
+   
+   Setelah install, verifikasi lagi:
+   ```powershell
+   python -c "import torch; print(torch.__version__, torch.cuda.is_available())"
+   ```
+   
+   Harus menunjukkan `+cu124` atau `+cu121` dan `True`.
+
+3. Verifikasi GPU hardware terdeteksi:
    ```powershell
    nvidia-smi
    ```
 
-2. Test dengan script:
+4. Test dengan script:
    ```powershell
    python "test gpu.py"
    ```
-
-3. Pastikan PyTorch CUDA terinstall:
-   ```powershell
-   python -c "import torch; print(torch.cuda.is_available())"
-   ```
+   
+   Pastikan output menunjukkan:
+   - `cuda_available=True`
+   - `gpu_in_use=True`
+   - GPU name terdeteksi
 
 ### Import Errors
 
-1. Pastikan virtual environment aktif
-2. Install semua dependencies:
+1. Install semua dependencies secara global:
    ```powershell
    pip install -r requirements.txt
    ```
 
-3. Test imports:
+2. Test imports:
    ```powershell
    python test_imports.py
    ```
+
+3. Pastikan menggunakan Python 3.12 yang sudah terinstall PyTorch CUDA
+
+### IDE Masih Menggunakan Venv (Python Path Error)
+
+Jika IDE/editor masih mencoba menggunakan `.venv312` yang sudah tidak ada:
+
+**VS Code / Cursor:**
+1. Buka Command Palette (`Ctrl+Shift+P`)
+2. Ketik "Python: Select Interpreter"
+3. Pilih: `C:\Users\YourUsername\AppData\Local\Programs\Python\Python312\python.exe`
+   (atau path Python system Anda)
+4. File `.vscode/settings.json` sudah dikonfigurasi untuk menggunakan system Python
+
+**Atau edit manual di `.vscode/settings.json`:**
+```json
+{
+    "python.defaultInterpreterPath": "C:\\Users\\YourUsername\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+    "python.terminal.activateEnvironment": false
+}
+```
+
+**PyCharm:**
+1. File → Settings → Project → Python Interpreter
+2. Pilih "System Interpreter" atau browse ke Python system path
+
+**Verifikasi:**
+Jalankan di terminal IDE:
+```powershell
+python -c "import sys; print(sys.executable)"
+```
+
+Pastikan output menunjuk ke system Python, bukan venv.
 
 ### CUDA Out of Memory
 
@@ -296,6 +334,8 @@ Setelah training, hasil tersimpan di `results/`:
 
 ## Notes
 
+- Setup ini menginstall PyTorch dan dependencies secara global ke system Python
+- Tidak memerlukan virtual environment - GPU akan otomatis terdeteksi jika PyTorch CUDA terinstall dengan benar
 - Dataset preparation hanya perlu dilakukan sekali
 - Model training bisa memakan waktu 30-60 menit (tergantung GPU)
 - Pastikan GPU tersedia untuk training yang lebih cepat

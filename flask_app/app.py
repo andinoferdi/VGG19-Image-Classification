@@ -72,9 +72,69 @@ def train():
         dataloaders, dataset_sizes, class_names = get_dataloaders(DATASET_DIR, batch_size=batch_size)
         
         checkpoint_path = None
+        start_epoch = 0
+        train_loss_history = None
+        train_acc_history = None
+        val_loss_history = None
+        val_acc_history = None
+        best_acc = 0.0
+        
         if continue_training and os.path.exists(MODEL_SAVE_PATH):
             checkpoint_path = MODEL_SAVE_PATH
             print(f"Continuing training from checkpoint: {MODEL_SAVE_PATH}")
+            
+            # Load full checkpoint with training state
+            try:
+                checkpoint = torch.load(checkpoint_path, map_location=DEVICE)
+                
+                # Check if it's new format (dict with epoch key)
+                if isinstance(checkpoint, dict) and 'epoch' in checkpoint:
+                    # Full checkpoint with training state
+                    loaded_epoch = checkpoint.get('epoch', -1)
+                    start_epoch = loaded_epoch + 1  # Start from next epoch
+                    train_loss_history = checkpoint.get('train_loss_history', [])
+                    train_acc_history = checkpoint.get('train_acc_history', [])
+                    val_loss_history = checkpoint.get('val_loss_history', [])
+                    val_acc_history = checkpoint.get('val_acc_history', [])
+                    best_acc = checkpoint.get('best_acc', 0.0)
+                    
+                    print(f"Resuming from epoch {start_epoch} (was at epoch {loaded_epoch})")
+                    print(f"Previous best validation accuracy: {best_acc:.4f}")
+                    print(f"History lengths - Train: {len(train_loss_history)}, Val: {len(val_loss_history)}")
+                    
+                    # Validate start_epoch doesn't exceed requested epochs
+                    if start_epoch >= epochs:
+                        print(f"Warning: Checkpoint is at epoch {loaded_epoch}, but only {epochs} epochs requested.")
+                        print("Training will be skipped (already completed).")
+                        return jsonify({
+                            'success': False,
+                            'error': f'Model already trained to epoch {loaded_epoch}. Request more epochs to continue training.'
+                        }), 400
+                        
+                elif isinstance(checkpoint, dict) and 'model_state_dict' in checkpoint:
+                    # New format but missing epoch (shouldn't happen, but handle gracefully)
+                    print("Warning: Checkpoint missing epoch info, assuming fresh start from loaded weights")
+                    start_epoch = 0
+                    train_loss_history = checkpoint.get('train_loss_history', [])
+                    train_acc_history = checkpoint.get('train_acc_history', [])
+                    val_loss_history = checkpoint.get('val_loss_history', [])
+                    val_acc_history = checkpoint.get('val_acc_history', [])
+                    best_acc = checkpoint.get('best_acc', 0.0)
+                    
+                else:
+                    # Old format - OrderedDict with only model weights
+                    print("Warning: Checkpoint in old format (model weights only)")
+                    print("Will start from epoch 0 with loaded weights.")
+                    print("After this training, checkpoint will be upgraded to new format with full state.")
+                    start_epoch = 0
+                    
+            except Exception as e:
+                import traceback
+                traceback.print_exc()
+                print(f"Error loading checkpoint: {e}")
+                print("Will start fresh training from ImageNet weights")
+                checkpoint_path = None
+                start_epoch = 0
         else:
             print("Starting fresh training from ImageNet pretrained weights")
         
@@ -84,11 +144,65 @@ def train():
         optimizer = optim.SGD(params_to_update, lr=learning_rate, momentum=MOMENTUM)
         scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.1)
         
+        # Load optimizer and scheduler state if resuming (only for new format checkpoint)
+        if continue_training and checkpoint_path and os.path.exists(checkpoint_path) and start_epoch > 0:
+            try:
+                checkpoint = torch.load(checkpoint_path, map_location=DEVICE)
+                if isinstance(checkpoint, dict) and 'optimizer_state_dict' in checkpoint:
+                    try:
+                        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+                        print(f"Loaded optimizer state")
+                    except Exception as e:
+                        print(f"Warning: Could not load optimizer state: {e}")
+                        print("Will reinitialize optimizer (this is normal for old checkpoints)")
+                    
+                    if 'scheduler_state_dict' in checkpoint:
+                        try:
+                            scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
+                            print(f"Loaded scheduler state")
+                        except Exception as e:
+                            print(f"Warning: Could not load scheduler state: {e}")
+                            print("Will reinitialize scheduler (this is normal for old checkpoints)")
+                elif start_epoch == 0:
+                    print("Starting from epoch 0 - optimizer and scheduler will be initialized fresh")
+            except Exception as e:
+                print(f"Warning: Could not load optimizer/scheduler state: {e}")
+                print("Will use fresh optimizer and scheduler")
+        
         model, train_loss, train_acc, val_loss, val_acc, train_time = train_model(
-            model, dataloaders, dataset_sizes, criterion, optimizer, scheduler, num_epochs=epochs
+            model, dataloaders, dataset_sizes, criterion, optimizer, scheduler, 
+            num_epochs=epochs, start_epoch=start_epoch,
+            train_loss_history=train_loss_history, train_acc_history=train_acc_history,
+            val_loss_history=val_loss_history, val_acc_history=val_acc_history,
+            best_acc=best_acc
         )
         
-        torch.save(model.state_dict(), MODEL_SAVE_PATH)
+        # Calculate best validation accuracy from history
+        final_best_acc = max(val_acc) if val_acc else best_acc
+        
+        # Calculate total epochs completed (start_epoch + number of new epochs trained)
+        total_epochs_completed = start_epoch + len(train_loss) - (len(train_loss_history) if train_loss_history else 0)
+        # More reliable: last epoch index = start_epoch + epochs trained - 1
+        last_completed_epoch = start_epoch + len([x for x in train_loss if x not in (train_loss_history or [])]) - 1
+        # Actually simpler: if we started at start_epoch and trained for (num_epochs - start_epoch), last epoch is num_epochs - 1
+        last_completed_epoch = epochs - 1
+        
+        # Save full checkpoint with training state
+        checkpoint = {
+            'model_state_dict': model.state_dict(),
+            'optimizer_state_dict': optimizer.state_dict(),
+            'scheduler_state_dict': scheduler.state_dict(),
+            'epoch': last_completed_epoch,  # Last completed epoch index
+            'train_loss_history': train_loss,
+            'train_acc_history': train_acc,
+            'val_loss_history': val_loss,
+            'val_acc_history': val_acc,
+            'best_acc': final_best_acc,
+            'start_epoch': start_epoch,  # Track where we started from (for debugging)
+            'total_epochs': epochs  # Total epochs requested
+        }
+        torch.save(checkpoint, MODEL_SAVE_PATH)
+        print(f"Saved checkpoint at epoch {last_completed_epoch} (started from {start_epoch})")
         
         metrics = evaluate_model(model, dataloaders['test'], class_names)
         
