@@ -34,12 +34,6 @@ cd VGG19-Image-Classification
 
 ### 2. Install PyTorch dengan CUDA
 
-**PENTING:** Jika PyTorch CPU version sudah terinstall, uninstall dulu sebelum install CUDA version:
-
-```powershell
-pip uninstall torch torchvision torchaudio -y
-```
-
 **Untuk CUDA 12.1/12.4:**
 ```powershell
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
@@ -56,6 +50,12 @@ python -c "import torch; print(torch.__version__, torch.cuda.is_available())"
 ```
 
 Output harus menunjukkan versi PyTorch dengan `+cu124` atau `+cu121` (bukan `+cpu`) dan `True` untuk CUDA availability.
+
+**PENTING:** Jika outputnya menunjukan +cpu, uninstall lalu install CUDA version:
+
+```powershell
+pip uninstall torch torchvision torchaudio -y
+```
 
 **Contoh output yang benar:**
 - `2.9.0+cu124 True` ✓
@@ -213,139 +213,4 @@ Aplikasi menghitung:
 - Confusion Matrix
 - Training Time
 - Testing Time
-
-## Troubleshooting
-
-### GPU Not Detected / gpu_in_use=False
-
-1. **Cek versi PyTorch yang terinstall:**
-   ```powershell
-   python -c "import torch; print(torch.__version__, torch.cuda.is_available())"
-   ```
-   
-   Jika output menunjukkan `+cpu` dan `False`, berarti PyTorch CPU version masih terinstall.
-
-2. **Solusi: Uninstall PyTorch CPU dan install CUDA version:**
-   ```powershell
-   pip uninstall torch torchvision torchaudio -y
-   pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
-   ```
-   
-   Setelah install, verifikasi lagi:
-   ```powershell
-   python -c "import torch; print(torch.__version__, torch.cuda.is_available())"
-   ```
-   
-   Harus menunjukkan `+cu124` atau `+cu121` dan `True`.
-
-3. Verifikasi GPU hardware terdeteksi:
-   ```powershell
-   nvidia-smi
-   ```
-
-4. Test dengan script:
-   ```powershell
-   python "test gpu.py"
-   ```
-   
-   Pastikan output menunjukkan:
-   - `cuda_available=True`
-   - `gpu_in_use=True`
-   - GPU name terdeteksi
-
-### Import Errors
-
-1. Install semua dependencies secara global:
-   ```powershell
-   pip install -r requirements.txt
-   ```
-
-2. Test imports:
-   ```powershell
-   python test_imports.py
-   ```
-
-3. Pastikan menggunakan Python 3.12 yang sudah terinstall PyTorch CUDA
-
-### IDE Masih Menggunakan Venv (Python Path Error)
-
-Jika IDE/editor masih mencoba menggunakan `.venv312` yang sudah tidak ada:
-
-**VS Code / Cursor:**
-1. Buka Command Palette (`Ctrl+Shift+P`)
-2. Ketik "Python: Select Interpreter"
-3. Pilih: `C:\Users\YourUsername\AppData\Local\Programs\Python\Python312\python.exe`
-   (atau path Python system Anda)
-4. File `.vscode/settings.json` sudah dikonfigurasi untuk menggunakan system Python
-
-**Atau edit manual di `.vscode/settings.json`:**
-```json
-{
-    "python.defaultInterpreterPath": "C:\\Users\\YourUsername\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
-    "python.terminal.activateEnvironment": false
-}
-```
-
-**PyCharm:**
-1. File → Settings → Project → Python Interpreter
-2. Pilih "System Interpreter" atau browse ke Python system path
-
-**Verifikasi:**
-Jalankan di terminal IDE:
-```powershell
-python -c "import sys; print(sys.executable)"
-```
-
-Pastikan output menunjuk ke system Python, bukan venv.
-
-### CUDA Out of Memory
-
-- Kurangi batch size di training form (coba 16 atau 8)
-- Tutup aplikasi lain yang menggunakan GPU
-
-### Port 5000 Already in Use
-
-Edit `flask_app/app.py` line terakhir:
-```python
-app.run(debug=True, host='0.0.0.0', port=5001)
-```
-
-### Dataset Not Found
-
-- Pastikan folder `all_data/` ada dengan 6 subfolder kelas
-- Struktur harus sesuai dengan format di atas
-
-## Monitoring GPU Usage
-
-Untuk monitoring real-time GPU:
-```powershell
-nvidia-smi -l 1
-```
-
-Refresh setiap 1 detik.
-
-## Results Location
-
-Setelah training, hasil tersimpan di `results/`:
-- `vgg19_best.pth` - Model weights terbaik
-- `training_history.png` - Loss dan accuracy plots
-- `confusion_matrix.png` - Confusion matrix heatmap
-- `metrics.txt` - Detailed evaluation metrics
-
-## Notes
-
-- Setup ini menginstall PyTorch dan dependencies secara global ke system Python
-- Tidak memerlukan virtual environment - GPU akan otomatis terdeteksi jika PyTorch CUDA terinstall dengan benar
-- Dataset preparation hanya perlu dilakukan sekali
-- Model training bisa memakan waktu 30-60 menit (tergantung GPU)
-- Pastikan GPU tersedia untuk training yang lebih cepat
-- Task Manager Windows mungkin tidak akurat untuk CUDA usage, gunakan `nvidia-smi`
-
-## License
-
-[Your License Here]
-
-## Author
-
-[Your Name Here]
 
